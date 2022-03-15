@@ -122,7 +122,7 @@ public class StatusView: UIView {
     }
 
     struct Constants {
-        static var maxHeight: CGFloat  { return UIDevice.current.userInterfaceIdiom == .pad ? 70 : 50 }
+        static var height: CGFloat  { return UIDevice.current.userInterfaceIdiom == .pad ? 70 : 50 }
         static var minWidth: CGFloat { return UIDevice.current.userInterfaceIdiom == .pad ? 180 : 150 }
         static var fontSize: CGFloat { return UIDevice.current.userInterfaceIdiom == .pad ? 17 : 13 }
         static var margin: CGFloat = 20
@@ -452,15 +452,14 @@ extension StatusView {
         let str = title + "\n" + (subtitle ?? "")
         var rect = boundingRect(of: str, constraining: options.width, font: UIFont.boldSystemFont(ofSize: Constants.fontSize))
 
-        // Clamp height value.
-        rect.size.height = Constants.maxHeight < rect.size.height ? Constants.maxHeight : rect.size.height
+        // Set height value.
+        rect.size.height = Constants.height
 
         // Approximate width value.
         var width = rect.size.width
         width += options.image != nil ? 2 * rect.size.height : 0
         rect.size.width = (Constants.minWidth ... options.width).clamp(width)
 
-        print("view width: \(options.width) ADJUSTED SIZE: \(rect)")
         return rect
     }
 
