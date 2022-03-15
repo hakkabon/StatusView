@@ -18,8 +18,8 @@ import QuartzCore
  *    { bottom left | center bottom | or bottom right }.
  *
  * Tagged notifications are displayed one at a time regarding their asssigned tag number.
- * This ensures that one notification instance is displayed only one at a time, to avoid
- * showing the same notification, possibly overlapping, more than once.
+ * This ensures that one notification instance is displayed only one at a time, not
+ * showing the same notification more than once.
  *
  */
 public class StatusView: UIView {
@@ -122,12 +122,10 @@ public class StatusView: UIView {
     }
 
     struct Constants {
-        static var minHeight: CGFloat { return UIDevice.current.userInterfaceIdiom == .pad ? 70 : 50 }
-        static var maxHeight: CGFloat { return UIDevice.current.userInterfaceIdiom == .pad ? 150 : 120 }
+        static var maxHeight: CGFloat  { return UIDevice.current.userInterfaceIdiom == .pad ? 70 : 50 }
+        static var minWidth: CGFloat { return UIDevice.current.userInterfaceIdiom == .pad ? 180 : 150 }
         static var fontSize: CGFloat { return UIDevice.current.userInterfaceIdiom == .pad ? 17 : 13 }
-        static var margin: CGFloat = 8
-        static var iconFraction: CGFloat = 0.25
-        static var textFraction: CGFloat = 0.7
+        static var margin: CGFloat = 20
 
         static let showAnimation = "ShowAnimation"
         static let hideAnimation = "HideAnimation"
@@ -144,16 +142,14 @@ public class StatusView: UIView {
     }
     
     public convenience init(title: String, subtitle: String?, options: StatusOptions) {
-        let string = title + "\n" + (subtitle ?? "")
         self.init(
             frame: CGRect(
                 // temporary offscreen origin
-                origin: CGPoint(x: options.position.isTop ? -400 : 0,
-                                y: options.position.isTop ? -400 : UIScreen.main.bounds.height),
-                size: CGSize(
-                    width: options.width,
-                    height: StatusView.adjustedHeight(title: string, subtitle: subtitle, constrainedBy: options.width)
-                )
+                origin: CGPoint(
+                    x: options.position.isTop ? -400 : 0,
+                    y: options.position.isTop ? -400 : UIScreen.main.bounds.height
+                ),
+                size: StatusView.adjustSize(title: title, subtitle: subtitle, constrainedBy: options).size
             )
         )
 
@@ -247,14 +243,13 @@ public class StatusView: UIView {
     
     override public func updateConstraints() {
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: self.topAnchor, constant: Constants.margin),
-            stackView.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 3*Constants.margin),
-            stackView.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -3*Constants.margin),
-            stackView.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -Constants.margin),
+            stackView.topAnchor.constraint(equalTo: self.topAnchor),
+            stackView.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: Constants.margin),
+            stackView.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -Constants.margin),
+            stackView.bottomAnchor.constraint(equalTo: self.bottomAnchor),
         ])
         NSLayoutConstraint.activate([
-            iconView.widthAnchor.constraint(equalTo: iconView.heightAnchor),
-            iconView.widthAnchor.constraint(equalTo: stackView.widthAnchor, multiplier: Constants.iconFraction),
+            iconView.widthAnchor.constraint(equalTo: iconView.heightAnchor, multiplier: 0.8),
         ])
 
         iconView.setContentHuggingPriority(UILayoutPriority.defaultHigh, for: .horizontal)
@@ -448,26 +443,25 @@ extension StatusView : CAAnimationDelegate {
 @available(iOS 9.0, *)
 extension StatusView {
     
-    /// Adjust height of notification size depending on the amount of text, constraining width and max height.
+    /// Adjust size of notification depending on the amount of text, constraining width and max height.
     /// - Parameters:
     ///   - title: title string for which the adjusted height is calculated
     ///   - subtitle: subtitle string for which the adjusted height is calculated
     ///   - width: maximum width
-    static func adjustedHeight(title: String, subtitle: String?, constrainedBy width: CGFloat) -> CGFloat {
-        let textWidth = (width - 6 * Constants.margin) * Constants.textFraction
-        var height = boundingRect(of: title, constraining: textWidth, font: UIFont.boldSystemFont(ofSize: Constants.fontSize)).height
-        if let subtitle = subtitle {
-            height += boundingRect(of: subtitle, constraining: textWidth, font: UIFont.systemFont(ofSize: Constants.fontSize)).height
-        }
-        height += 2*Constants.margin
-        
-        // Clamp height value to [min ... max].
-        height = height < Constants.minHeight ? Constants.minHeight : height
-        height = height > Constants.maxHeight ? Constants.maxHeight : height
+    static func adjustSize(title: String, subtitle: String?, constrainedBy options: StatusOptions) -> CGRect {
+        let str = title + "\n" + (subtitle ?? "")
+        var rect = boundingRect(of: str, constraining: options.width, font: UIFont.boldSystemFont(ofSize: Constants.fontSize))
 
-//        print("view width: \(width) text width: \(textWidth) ADJUSTED HEIGHT: \(height)")
+        // Clamp height value.
+        rect.size.height = Constants.maxHeight < rect.size.height ? Constants.maxHeight : rect.size.height
 
-        return ceil(height)
+        // Approximate width value.
+        var width = rect.size.width
+        width += options.image != nil ? 2 * rect.size.height : 0
+        rect.size.width = (Constants.minWidth ... options.width).clamp(width)
+
+        print("view width: \(options.width) ADJUSTED SIZE: \(rect)")
+        return rect
     }
 
     /// Returns a bounding rectangle of given text and font constrained by the given width.
@@ -544,3 +538,11 @@ private var currentWindow: UIWindow? = {
         return UIApplication.shared.keyWindow
     }
 }()
+
+extension ClosedRange {
+    func clamp(_ value : Bound) -> Bound {
+        return self.lowerBound > value ? self.lowerBound
+            : self.upperBound < value ? self.upperBound
+            : value
+    }
+}
