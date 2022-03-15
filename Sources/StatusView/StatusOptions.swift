@@ -59,7 +59,7 @@ public extension StatusOptions {
     // Initial position of notification.
     var position: StatusView.Position { return StatusView.Position.top }
 
-    var width: CGFloat { return UIDevice.current.userInterfaceIdiom == .pad ? 260 : 200 }
+    var width: CGFloat { return UIScreen.main.bounds.width - 2 * 20 }
     var alignment: NSTextAlignment { return .center }
     var image: UIImage? { return nil }
     var imageLocation: StatusView.ImageLocation { return .left }
